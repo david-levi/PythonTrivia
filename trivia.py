@@ -4,7 +4,6 @@ import math
 
 QUESTIONS_PER_GAME = 5
 
-
 class Answer:
 
     def __init__(self, answer, id):
@@ -46,6 +45,34 @@ class Trivia:
 
     def __init__(self):
         self.questions = []
+        self.correct_answers = 0
+
+    def parse_question_file(self, filename):
+        with open(filename, 'r', encoding="utf8") as f:
+            for line in f:
+                self.questions.append(Question(line))
+
+    def check_sufficient_questions(self, number_of_questions):
+        if number_of_questions < QUESTIONS_PER_GAME:
+            raise ValueError('Not enough questions in file! requested: {}, '
+                             'available: {}'.format(QUESTIONS_PER_GAME,
+                                                    number_of_questions))
+
+    def process_question(self, idx, q):
+        print("{}. {}".format(idx + 1, q))
+        user_answer = self.get_user_answer(q)
+        if self.check_user_answer(int(user_answer), q):
+            self.correct_answers += 1
+
+    def get_user_answer(self, q):
+        user_answer = input('Enter the number of the correct answer: ')
+        while not self.is_valid_answer(user_answer, q):
+            print('Invalid answer, try again!')
+            user_answer = input('Enter the number of the correct answer: ')
+        return user_answer
+
+    def is_valid_answer(self, answer, question):
+        return answer.isdigit() and 1 <= int(answer) <= len(question.answers)
 
     def check_user_answer(self, user_answer, question):
         if question.answers[user_answer - 1] is question.correct_answer:
@@ -56,39 +83,24 @@ class Trivia:
                   .format(question.correct_answer))
             return False
 
-    def is_valid_answer(answer, question):
-        return 1 <= answer <= len(question.answers)
-
-    def parse_question_file(self, filename):
-        with open(filename, 'r', encoding="utf8") as f:
-            for line in f:
-                self.questions.append(Question(line))
+    def show_game_summary(self):
+        final_score = math.ceil(self.correct_answers/QUESTIONS_PER_GAME * 100)
+        print("""Game over! Summary:
+                 Total questions: {}
+                 Correct answers: {}
+                 Score: {}""".format(QUESTIONS_PER_GAME, self.correct_answers,
+                                     final_score))
 
     def run(self):
         self.parse_question_file("ConcertTriviaUTF8.dat")
         number_of_questions = len(self.questions)
-
-        if number_of_questions < QUESTIONS_PER_GAME:
-            raise ValueError('Not enough questions in file! requested: {}, '
-                             'available: {}'.format(QUESTIONS_PER_GAME,
-                                                    number_of_questions))
+        self.check_sufficient_questions(number_of_questions)
         random_question_set = random.sample(self.questions, QUESTIONS_PER_GAME)
-        correct_answers = 0
+        
         for q, idx in zip(random_question_set, range(QUESTIONS_PER_GAME)):
-            print("{}. {}".format(idx + 1, q))
-            user_answer = input('Enter the number of the correct answer: ')
-            while not self.is_valid_answer(int(user_answer), q):
-                print('Invalid answer, try again!')
-                user_answer = input('Enter the number of the correct answer: ')
-            if self.check_user_answer(int(user_answer), q):
-                correct_answers += 1
+            self.process_question(idx, q)
             print()
-        final_score = math.ceil(correct_answers / QUESTIONS_PER_GAME * 100)
-        print("""Game over! Summary:
-                 Total questions: {}
-                 Correct answers: {}
-                 Score: {}""".format(QUESTIONS_PER_GAME, correct_answers,
-                                     final_score))
+        self.show_game_summary()
 
 
 def main():
